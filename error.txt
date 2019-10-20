@@ -1,0 +1,15 @@
+1 Success
+1xx Public
+2xx Token
+3xx LuckJackpot
+
+//  Public 1xxx
+1001    暂无数据
+1002    参数错误
+
+//  Token  2xxx
+2001    Authorization 错误
+2002    Token 错误
+2003    Token 已过期
+2004    uid 错误
+
