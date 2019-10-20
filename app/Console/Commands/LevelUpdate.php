@@ -71,20 +71,20 @@ class LevelUpdate extends Command
         //伞下业绩
         if(bccomp($item->TeamAchievement, $nextLv->Achive) < 0) return ;
         //有效直推
-        $zt = Member::where('ParentId', $item->Id)->count();
+        $zt = Member::where('ParentId', $item->Id)->where('HasInv', 1)->count();
         if($zt < $nextLv->InviteNumber) return ;
         //5代内至少两条链出现要求等级
         //5代内一共出现要求等级3次以上
         $subMember = Member::where('ParentId', $item->Id)->get();
         $chain = 0; //满足条件的链
         $achieve = 0; //满足等级的人数
-        foreach($subMember as $item){
+        foreach($subMember as $sitem){
             //获取一级代理的四代内用户
-            $fourth = $item->FourthRoot;
+            $fourth = $sitem->FourthRoot;
             $fourth = explode('|', $fourth);
             if(!is_array($fourth)) continue;
             $fifth = $fourth;
-            $fifth[] = $item->Id;
+            $fifth[] = $sitem->Id;
             //五代内用户
             $fifth = array_filter($fifth);
             $reach = Member::whereIn('Id', $fifth)->where('CommunityLevel', $nextLv->HasLevel)->count();

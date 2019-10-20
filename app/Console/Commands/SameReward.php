@@ -48,7 +48,7 @@ class SameReward extends Command
                 $member = Members::where('Id', $item->MemberId)->first();
                 if(empty($member)) continue;
                 $root = $this->GetRoot($member->Root);
-                $pMembers = Members::whereIn('Id', $root)->get();
+                $pMembers = Members::whereIn('Id', $root)->orderBy('Id','desc')->get();
                 foreach($pMembers as $pMember){
                     //中间来个大的直接滚蛋
                     if($pMember->CommunityLevel > $member->CommunityLevel) break;
