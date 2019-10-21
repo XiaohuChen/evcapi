@@ -22,6 +22,8 @@ class LevelUpdate extends Command
      */
     protected $description = '社区等级升级';
 
+    protected $_plan_map = [];
+
     /**
      * Create a new command instance.
      *
@@ -42,6 +44,12 @@ class LevelUpdate extends Command
         $today = intval(date('Ymd'));
         DB::beginTransaction();
         try{
+            $plan = DB::table('PlanLevel')->get()->toArray();
+            $planMap = array_column($plan, 'ProductId', 'Level');
+            foreach($planMap as $k => $v){
+                $planMap[$k] = json_decode($v);
+            }
+            $this->_plan_map = $planMap;
             //从最后注册的用户开始升级
             $members = Member::where('LevelUpdateDate', '<>', $today)->orderBy('Id','desc')->paginate(1000);
             foreach($members as $item){
@@ -60,14 +68,12 @@ class LevelUpdate extends Command
 
     public function Update($item){
         //只有预约等级为2级以上的社区等级才能升级
-        if($item->PlanLevel < 2) return ;
+        //if($item->PlanLevel < 2) return ;
         //社区等级为4级(台长)的时候不用继续升级
         if($item->CommunityLevel >= 4) return ;
         //取下一级配置
         $nextLv = DB::table('CommunityLevelSetting')->where('Level','>', $item->CommunityLevel)->first();
         if(empty($nextLv)) return ;
-        //预约等级
-        if($item->PlanLevel < $nextLv->PlanLevel) return ;
         //伞下业绩
         if(bccomp($item->TeamAchievement, $nextLv->Achive) < 0) return ;
         //有效直推
@@ -95,6 +101,21 @@ class LevelUpdate extends Command
         }
         //判断升级条件
         if($chain >= 2 && $achieve >= 3){
+            //没达到预约等级则更新为当前所需等级 社区等级不提升
+            if($item->PlanLevel < $nextLv->PlanLevel){
+                DB::table('Members')->where('Id', $item->Id)->update([
+                    'PlanLevel' => $nextLv->PlanLevel
+                ]);
+                return ;
+            }
+            //是否购买预约等级的商品
+            if(!isset($this->_plan_map[$nextLv->PlanLevel])) return;
+            $has = DB::table('MemberProducts')
+                ->where('MemberId', $item->MemberId)
+                ->whereIn('State', [1,2])
+                ->whereIn('ProductId', $this->_plan_map[$nextLv->PlanLevel])
+                ->first();
+            if(empty($has)) return ;
             //可以升级啦~
             DB::table('Members')->where('Id', $item->Id)->update(['CommunityLevel' => $nextLv->Level]);
             //继续升级知道不能升级为止

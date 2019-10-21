@@ -38,6 +38,39 @@ class SmsController extends Controller
 
     /**
      * @OA\Post(
+     *     path="/sms-withdraw",
+     *     operationId="/sms-withdraw",
+     *     tags={"SMS"},
+     *     summary="提现",
+     *     description="提现",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Header(
+     *         header="api_key",
+     *         description="Api key header",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string"
+     *         )
+     *     ),
+     *     security={
+     *          {"Authorization":{}}
+     *     }
+     * )
+     */
+    public function WithdrawCode(Request $request, SmsService $service){
+        $id = intval($request->get('uid'));
+
+        //注册
+        $service->WithdrawCode($id);
+        return self::success();
+    }
+
+    /**
+     * @OA\Post(
      *     path="/sms-modify-pass",
      *     operationId="/sms-modify-pass",
      *     tags={"SMS"},

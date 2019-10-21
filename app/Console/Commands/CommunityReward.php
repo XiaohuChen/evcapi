@@ -79,6 +79,7 @@ class CommunityReward extends Command
                         'Type' => 3,
                         'AddTime' => $now
                     ]);
+                    $currentRatio = $lMap[$pMember->CommunityLevel];
                 }
                 //修改状态
                 DB::table('OutputLog')->where('Id', $item->Id)->update(['IsCommunityReward' => 1]);

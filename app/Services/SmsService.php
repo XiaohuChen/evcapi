@@ -68,6 +68,33 @@ class SmsService extends Service
     }
 
     /**
+     * @method 忘记交易密码
+     * @param $phone 手机号
+     */
+    public function WithdrawCode($id){
+        $member = Members::where('Id', $id)->first();
+        if(empty($member->Phone))
+            throw new ArException(ArException::SELF_ERROR,'你还没绑定手机号');
+        $phone = $member->Phone;
+        $auth = Redis::hget('WithdrawCode',$phone);
+        if(!empty($auth)){
+            $auth = json_decode($auth, true);
+            if(is_array($auth)){
+                if((time() - $auth['SendTime']) < 60) throw new ArException(ArException::SELF_ERROR,'每分钟只能发送一次验证码');
+            }
+        }
+        //发送验证码
+        $code = rand(100000,999999);
+        $this->JuHeSms($phone, $code,self::$_forget_tpl);
+        $auth = [
+            'Code' => $code,
+            'ExpireTime' => time() + 600,
+            'SendTime' => time()
+        ];
+        Redis::hset('WithdrawCode', $phone, json_encode($auth));
+    }
+
+    /**
      * @method 忘记密码
      * @param $phone 手机号
      */

@@ -253,9 +253,8 @@ class CoinController extends Controller
      */
     public function RechargeAndWithdraw(Request $request, CoinService $service){
         $uid = intval($request->get('uid'));
-        $id = intval($request->input('Id'));
         $count = intval($request->input('count'));
-        $list = $service->RechargeAndWithdraw($uid, $id, $count);
+        $list = $service->RechargeAndWithdraw($uid, $count);
         return self::success($list);
     }
 
@@ -275,6 +274,8 @@ class CoinController extends Controller
      *     @OA\Parameter(ref="#/components/parameters/Money"),
      *     @OA\Parameter(ref="#/components/parameters/Address"),
      *     @OA\Parameter(ref="#/components/parameters/Memo"),
+     *     @OA\Parameter(ref="#/components/parameters/AuthCode"),
+     *     @OA\Parameter(ref="#/components/parameters/PayPassword"),
      *     @OA\Header(
      *         header="api_key",
      *         description="Api key header",
@@ -290,11 +291,14 @@ class CoinController extends Controller
      */
     public function Recharge(Request $request, CoinService $service){
         $uid = intval($request->get('uid'));
+        $pass = trim($request->input('PayPassword'));
+        $service->VerifyPayPass($uid, $pass);
         $coinId = intval($request->input('Id'));
         $money = trim($request->input('Money'));
         $address = trim($request->input('Address'));
         $memo = trim($request->input('Id'));
-        $list = $service->Recharge($uid, $coinId, $money, $address, $memo);
+        $code = $request->input('AuthCode');
+        $list = $service->Recharge($uid, $coinId, $money, $address, $memo, $code);
         return self::success($list);
     }
 

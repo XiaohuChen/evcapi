@@ -45,6 +45,7 @@ class SameReward extends Command
             $reward = DB::table('RewardRecord')->where('Type', 3)->where('IsSameReward', 0)->paginate(1000);
             $now = time();
             foreach($reward as $item){
+                DB::table('RewardRecord')->where('Id', $item->Id)->update(['IsSameReward' => 0]);
                 $member = Members::where('Id', $item->MemberId)->first();
                 if(empty($member)) continue;
                 $root = $this->GetRoot($member->Root);

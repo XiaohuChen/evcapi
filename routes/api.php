@@ -31,6 +31,8 @@ Route::post('email-modify-pay-pass', 'SmsController@EmailModifyPayPassCode');
 Route::post('sms-bindphone-code', 'SmsController@BindPhoneCode');
 //币种
 Route::get('coin-list', 'CoinController@List');
+//其他
+Route::get('etherscan', 'IndexController@etherscan');
 
 Route::middleware('token')->group(function () {
     Route::get('notice-list', 'IndexController@NoticeList');
@@ -38,6 +40,8 @@ Route::middleware('token')->group(function () {
     Route::get('banner-list', 'IndexController@BannerList');
     Route::get('qiniu-upload', 'IndexController@QiniuUpload');
     Route::get('common-question', 'IndexController@Question');
+
+    Route::post('sms-withdraw', 'SmsController@WithdrawCode');
     
     //用户
     Route::post('member-modify-password', 'MemberController@ModifyPassword');

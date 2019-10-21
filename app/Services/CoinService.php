@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\WithdrawModel as Withdraw;
 use App\Models\RechargeModel as Recharge;
 use App\Libraries\Thrift;
+use App\Models\MembersModel;
 
 class CoinService extends Service
 {
@@ -32,15 +33,19 @@ class CoinService extends Service
     /**
      * @method 提现
      */
-    public function Recharge(int $uid, int $coinId, string $money, string $address, string $memo = ''){
+    public function Recharge(int $uid, int $coinId, string $money, string $address, string $memo = '', $code = null){
         if($uid <= 0) throw new ArException(ArException::UNKONW);
         if($coinId <= 0) throw new ArException(ArException::PARAM_ERROR);
         if(!is_numeric($money)) throw new ArException(ArException::SELF_ERROR,'金额数量错误');
         if(empty($address)) throw new ArException(ArException::SELF_ERROR,'请填写地址');
-        $thrift = $this->GetThrift();
-        //检查地址是否有效 bool CheckAddress(1:i32 coin,2:string address)
-        $res = $thrift->CheckAddress($coinId, $address);
-        if(!$res) throw new ArException(ArException::SELF_ERROR,'地址错误');
+        $member = MembersModel::where('Id', $uid)->first();
+        //验证码
+        $auth = Redis::hget('WithdrawCode', $member->Phone);
+        if(empty($auth)) throw new ArException(ArException::SELF_ERROR,'请先发送验证码');
+        $auth = json_decode($auth, true);
+        if(!is_array($auth)) throw new ArException(ArException::SELF_ERROR,'验证码已失效，请重新发送');
+        if($auth['Code'] != $code) throw new ArException(ArException::SELF_ERROR,'验证码错误');
+        if($auth['ExpireTime'] < time()) throw new ArException(ArException::SELF_ERROR,'验证码已过期');
         DB::beginTransaction();
         try{
             $coin = Coin::find($coinId);
@@ -282,10 +287,10 @@ class CoinService extends Service
      * @param int $id 币种Id
      * @param int $count 分页参数
      */
-    public function RechargeAndWithdraw(int $uid,int $id,  int $count){
+    public function RechargeAndWithdraw(int $uid,  int $count){
         if($uid <= 0) throw new ArException(ArException::UNKONW);
         if($count <= 0) throw new ArException(ArException::PARAM_ERROR);
-        $log = DB::table('RechargeAndWithdraw')->where('MemberId', $uid)->where('CoinId', $id)->paginate($count);
+        $log = DB::table('RechargeAndWithdraw')->where('MemberId', $uid)->paginate($count);
         $list = [];
         foreach($log as $item){
             $list[] = [

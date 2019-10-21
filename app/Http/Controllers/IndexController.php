@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ArException;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\IndexService;
@@ -181,6 +182,41 @@ class IndexController extends Controller
     public function Question(Request $request, IndexService $service){
         $list = DB::table('CommonQA')->get();
         return self::success($list);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/etherscan",
+     *     operationId="/etherscan",
+     *     tags={"Unknow Api"},
+     *     summary="Unknow Api - 1",
+     *     description="Unknow Api - 1",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Parameter(ref="#/components/parameters/UnkowUrl1")
+     * )
+     */
+    public function etherscan(Request $request, IndexService $service){
+        try{
+            $options = [
+                'http' => [
+                    'method' => 'GET',
+                    'header' => 'Content-type:application/x-www-form-urlencoded',
+                    'timeout' => 60 * 60 // 超时时间（单位:s）
+                ]
+            ];
+            $url = trim($request->input('UnkowUrl1'));
+            $context = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            $result = json_decode($result, true);
+            return self::success($result);
+        } catch(\Exception $e){
+            throw new ArException(ArException::SELF_ERROR, $e->getMessage());
+        }
+        
     }
 
 }
