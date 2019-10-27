@@ -21,6 +21,11 @@ Route::post('member-register', 'MemberController@Register');
 Route::post('member-login', 'MemberController@Login');
 Route::post('member-forget-password', 'MemberController@ForgetPassword');
 Route::post('member-forget-paypassword', 'MemberController@ForgetPayPassword');
+Route::get('member-doc', 'IndexController@Doc');
+Route::get('news-list', 'IndexController@NewList');
+Route::get('news-detail', 'IndexController@NewsDetail');
+
+
 //sms
 Route::post('sms-register-code', 'SmsController@RegisterCode');
 Route::post('sms-modify-pass', 'SmsController@ModifyPassCode');
@@ -29,17 +34,24 @@ Route::post('email-register-code', 'SmsController@EmailRegisterCode');
 Route::post('email-modify-pass', 'SmsController@EmailModifyPassCode');
 Route::post('email-modify-pay-pass', 'SmsController@EmailModifyPayPassCode');
 Route::post('sms-bindphone-code', 'SmsController@BindPhoneCode');
+Route::post('email-test', 'SmsController@SendEmail');
+
+Route::get('coin-kline', 'CoinController@Kline');
+
+
 //币种
 Route::get('coin-list', 'CoinController@List');
 //其他
 Route::get('etherscan', 'IndexController@etherscan');
+Route::get('common-question', 'IndexController@Question');
+Route::get('qiniu-domain', 'IndexController@QiniuDomain');
+Route::get('banner-list', 'IndexController@BannerList');
 
 Route::middleware('token')->group(function () {
     Route::get('notice-list', 'IndexController@NoticeList');
     Route::get('notice-detail', 'IndexController@NoticeDetail');
-    Route::get('banner-list', 'IndexController@BannerList');
     Route::get('qiniu-upload', 'IndexController@QiniuUpload');
-    Route::get('common-question', 'IndexController@Question');
+    
 
     Route::post('sms-withdraw', 'SmsController@WithdrawCode');
     
@@ -79,7 +91,6 @@ Route::middleware('token')->group(function () {
     Route::get('my-product', 'ProductController@MyList');
     Route::get('my-detail', 'ProductController@MyDetail');
     Route::get('product-detail', 'ProductController@Detail');
-    
 });
 
 

@@ -55,7 +55,7 @@ class MemberService extends Service
             //记录收益余额明细
             DB::table('RewardRecord')->insert([
                 'MemberId' => $uid,
-                'Number' => -$number,
+                'Number' => -$dec,
                 'Type' => 7,
                 'AddTime' => time()
             ]);
@@ -153,7 +153,7 @@ class MemberService extends Service
             if(empty($member)) throw new ArException(ArException::USER_NOT_FOUND);
             if($member->AuthState == 1) throw new ArException(ArException::SELF_ERROR,'等待审核通过');
             if($member->AuthState == 2) throw new ArException(ArException::SELF_ERROR,'此账号已实名认证');
-            $has = Members::where('IdCard', $idCard)->first();
+            $has = Members::where('IdCard', $idCard)->where('Id', '<>', $uid)->first();
             if(!empty($has)) throw new ArException(ArException::SELF_ERROR,'此身份证号已被实名认证');
             DB::table('Members')->where('Id', $uid)->update([
                 'AuthState' => 1,
@@ -218,7 +218,8 @@ class MemberService extends Service
             'AuthName' => $member->AuthName,
             'AuthState' => $member->AuthState,
             'Achievement' => $member->Achievement,
-            'IsForbidden' => $member->IsForbidden
+            'IsForbidden' => $member->IsForbidden,
+            'PlanLevel' => $member->PlanLevel
         ];
         return $info;
     }

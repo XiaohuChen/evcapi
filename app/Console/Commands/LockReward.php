@@ -43,9 +43,11 @@ class LockReward extends Command
      */
     public function handle()
     {
-        //
-        $time = strtotime(date('Y-m-d')) -  86400;
+        //升级升完了才能执行静态奖励
         $today = intval(date('Ymd'));
+        $has = DB::table('Members')->where('LevelUpdateDate', '<>', $today)->first();
+        if(!empty($has)) exit('升级完成后再执行静态收益');
+        $time = strtotime(date('Y-m-d')) -  86400;
         $evc = CoinModel::where('EnName','EVC')->first();
         if(empty($evc)) exit("币种表没有EVC");
         $usdt = CoinModel::where('EnName','USDT')->first();
@@ -123,6 +125,9 @@ class LockReward extends Command
                             DB::table('Members')->where('Id', $item->MemberId)->update(['PlanLevel' => $nextLv->Level]);
                         }
                     }
+                    $root = $this->GetRoot($member->Root);
+                    DB::table('Members')->whereIn('Id', $root)->decrement('TeamAchievement', $item->Number);
+                    DB::table('Members')->where('Id', $item->MemberId)->decrement('Achievement', $item->Number);
                 }
             }
             DB::commit();
@@ -131,6 +136,15 @@ class LockReward extends Command
             var_dump($e->getMessage());
             var_dump($e->getLine());
         }
+    }
+
+    protected function GetRoot($root){
+        $root = explode(',', $root);
+        unset($root[count($root)-1]);
+        $root = array_values($root);
+        unset($root[0]);
+        $root = array_values($root);
+        return array_reverse($root);
     }
 
     //加日志

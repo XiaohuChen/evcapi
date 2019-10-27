@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\ArException;
 use App\Http\Controllers\Controller;
+use App\Libraries\SendEmail;
 use Illuminate\Http\Request;
 use App\Services\SmsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Mail;
 
 class SmsController extends Controller
 {
@@ -154,33 +154,12 @@ class SmsController extends Controller
      * )
      */
     public function EmailRegisterCode(Request $request, SmsService $service){
-        $subject = '注册验证码';
-        $to = trim($request->input('Email'));
-        $pattern = "/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,})$/";
-        preg_match($pattern, $to, $matches);
-        if(empty($matches)) throw new ArException(ArException::SELF_ERROR,'邮箱格式错误');
-        $has = DB::table('Members')->where('Email', $to)->first();
+        $email = trim($request->input('Email'));
+        if(!isEmail($email)) throw new ArException(ArException::SELF_ERROR,'邮箱格式错误');
+        $has = DB::table('Members')->where('Email', $email)->first();
         if(!empty($has)) throw new ArException(ArException::SELF_ERROR,'该邮箱已注册');
-        $code = mt_rand(100000, 999999);
-$code = 101101;
-        $auth = [
-            'Code' => $code,
-            'ExpireTime' => time() + 600,
-            'SendTime' => time()
-        ];
-        Redis::hset('EmailAuthCode', $to, json_encode($auth));
-return self::success();
 
-        Mail::send(
-            'emails.code',
-            [
-                'title' => '欢迎注册',
-                'code' => $code
-            ],
-            function ($message) use($to, $subject) { 
-                $message->to($to)->subject($subject); 
-            }
-        );
+        $service->SendCode($email, 'EmailAuthCode');
         return self::success();
     }
 
@@ -200,27 +179,9 @@ return self::success();
      * )
      */
     public function EmailModifyPassCode(Request $request, SmsService $service){
-        $subject = '修改密码';
-        $to = trim($request->input('Email'));
-        $has = DB::table('Members')->where('Email', $to)->first();
-        if(empty($has)) throw new ArException(ArException::SELF_ERROR,'该邮箱未注册');
-        $code = mt_rand(100000, 999999);
-        $auth = [
-            'Code' => $code,
-            'ExpireTime' => time() + 600,
-            'SendTime' => time()
-        ];
-        Redis::hset('ModifyPass', $to, json_encode($auth));
-        Mail::send(
-            'emails.code',
-            [
-                'title' => '修改密码',
-                'code' => $code
-            ],
-            function ($message) use($to, $subject) { 
-                $message->to($to)->subject($subject);
-            }
-        );
+        $email = trim($request->input('Email'));
+        $service->VerifyReg($email);
+        $service->SendCode($email, 'ModifyPass');
         return self::success();
     }
 
@@ -240,27 +201,40 @@ return self::success();
      * )
      */
     public function EmailModifyPayPassCode(Request $request, SmsService $service){
-        $subject = '修改交易密码';
-        $to = trim($request->input('Email'));
-        $has = DB::table('Members')->where('Email', $to)->first();
+        $email = trim($request->input('Email'));
+        $service->VerifyReg($email);
+        $service->SendCode($email, 'ModifyPayPass');
+        return self::success();
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/email-test",
+     *     operationId="/email-test",
+     *     tags={"SMS"},
+     *     summary="阿里云发送邮件api",
+     *     description="阿里云发送邮件api",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Parameter(ref="#/components/parameters/Email")
+     * )
+     */
+    public function SendEmail(Request $request){
+        $email = trim($request->input('Email'));
+        $has = DB::table('Members')->where('Email', $email)->first();
         if(empty($has)) throw new ArException(ArException::SELF_ERROR,'该邮箱未注册');
         $code = mt_rand(100000, 999999);
+        $client = new SendEmail($code, $email);
+        $client->Send();
         $auth = [
             'Code' => $code,
             'ExpireTime' => time() + 600,
             'SendTime' => time()
         ];
-        Redis::hset('ModifyPayPass', $to, json_encode($auth));
-        Mail::send(
-            'emails.code',
-            [
-                'title' => '修改交易密码',
-                'code' => $code
-            ],
-            function ($message) use($to, $subject) { 
-                $message->to($to)->subject($subject);
-            }
-        );
+        Redis::hset('ModifyPayPass', $email, json_encode($auth));
         return self::success();
     }
 

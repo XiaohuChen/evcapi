@@ -58,4 +58,16 @@
  *      )
  * )
  * 
+ * @OA\Parameter(
+ *      parameter="NewsId",
+ *      name="Id",
+ *      description="资讯ID",
+ *      in="query",
+ *      required=true,
+ *      @OA\Schema(
+ *          type="integer",
+ *      )
+ * )
+ * 
+ * 
  */

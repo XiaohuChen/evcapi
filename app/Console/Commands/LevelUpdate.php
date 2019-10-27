@@ -109,11 +109,12 @@ class LevelUpdate extends Command
                 return ;
             }
             //是否购买预约等级的商品
-            if(!isset($this->_plan_map[$nextLv->PlanLevel])) return;
+            $products = DB::table('Products')->where('NeedLevel', $nextLv->PlanLevel)->get()->toArray();
+            $pids = array_column($products, 'Id');
             $has = DB::table('MemberProducts')
-                ->where('MemberId', $item->MemberId)
+                ->where('MemberId', $item->Id)
                 ->whereIn('State', [1,2])
-                ->whereIn('ProductId', $this->_plan_map[$nextLv->PlanLevel])
+                ->whereIn('ProductId', $pids)
                 ->first();
             if(empty($has)) return ;
             //可以升级啦~

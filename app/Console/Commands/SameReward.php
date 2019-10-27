@@ -45,12 +45,14 @@ class SameReward extends Command
             $reward = DB::table('RewardRecord')->where('Type', 3)->where('IsSameReward', 0)->paginate(1000);
             $now = time();
             foreach($reward as $item){
-                DB::table('RewardRecord')->where('Id', $item->Id)->update(['IsSameReward' => 0]);
+                DB::table('RewardRecord')->where('Id', $item->Id)->update(['IsSameReward' => 1]);
                 $member = Members::where('Id', $item->MemberId)->first();
                 if(empty($member)) continue;
                 $root = $this->GetRoot($member->Root);
                 $pMembers = Members::whereIn('Id', $root)->orderBy('Id','desc')->get();
                 foreach($pMembers as $pMember){
+                    //当前没有投资则跳过
+                    if($pMember->HasInv != 1) continue;
                     //中间来个大的直接滚蛋
                     if($pMember->CommunityLevel > $member->CommunityLevel) break;
                     if($pMember->CommunityLevel == $member->CommunityLevel){

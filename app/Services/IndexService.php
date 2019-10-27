@@ -10,6 +10,58 @@ class IndexService extends Service
 {
 
     /**
+     * @method 快讯详情
+     * 
+     */
+    public function NewsDetail(int $id){
+        $news = DB::table('News')->where('Id', $id)->first();
+        if(empty($news)) return [];
+        $imgs = json_decode($news->Imgs);
+        if(!is_array($imgs)) $imgs = [];
+        else {
+            foreach($imgs as $k => $img){
+                $imgs[$k] = $img;
+            }
+        }
+        DB::table('News')->where('Id', $id)->increment('ReadNum');
+        $data = [
+            'Id' => $news->Id,
+            'Title' => $news->Title,
+            'Imgs' => $imgs,
+            'Content' => $news->Content,
+            'AddTime' => $news->AddTime,
+            'ReadNum' => $news->ReadNum
+        ];
+        return $data;
+    }
+
+    /**
+     * @method 快讯列表
+     * 
+     */
+    public function NewsList(int $count){
+        $news = DB::table('News')->orderBy('Id','desc')->paginate($count);
+        $list = [];
+        foreach($news as $item){
+            $imgs = json_decode($item->Imgs);
+            if(!is_array($imgs)) $imgs = [];
+            else {
+                foreach($imgs as $k => $img){
+                    $imgs[$k] = $img;
+                }
+            }
+            $list[] = [
+                'Id' => $item->Id,
+                'Title' => $item->Title,
+                'Imgs' => $imgs,
+                'AddTime' => $item->AddTime,
+                'ReadNum' => $item->ReadNum
+            ];
+        }
+        return ['list' => $list, 'total' => $news->total()];
+    }
+
+    /**
      * @method banner列表
      */
     public function BannerList(){
@@ -18,15 +70,11 @@ class IndexService extends Service
             ->orderBy('Sort','desc')
             ->get();
         $list = [];
-        $domain = '';
-        $qiniu = DB::table('QiniuConfig')->first();
-        if(!empty($qiniu)) $domain = $qiniu->Domain;
         foreach($banner as $item){
             $list[] = [
                 'Id' => $item->Id,
-                'Img' => $domain.$item->Image,
+                'Img' => $item->Image,
                 'Title' => $item->Title,
-                'Url' => $item->Url
             ];
         }
         return $list;

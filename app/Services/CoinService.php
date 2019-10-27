@@ -11,6 +11,7 @@ use App\Models\WithdrawModel as Withdraw;
 use App\Models\RechargeModel as Recharge;
 use App\Libraries\Thrift;
 use App\Models\MembersModel;
+use Illuminate\Support\Facades\Redis;
 
 class CoinService extends Service
 {
@@ -77,7 +78,7 @@ class CoinService extends Service
                 'CoinName' => $coin->EnName,
                 'Money' => $money,
                 'Remark' => $memo,
-                'Real' => bccomp($money, $fee, 10),
+                'Real' => bcsub($money, $fee, 10),
                 'Status' => $coin->IsAutoWithDraw == 1 ? : 0,
                 'AddTime' => time(),
                 'Fee' => $fee,
@@ -95,6 +96,7 @@ class CoinService extends Service
                 'Money' => DB::raw("Money - {$money}"),
                 'Forzen' => DB::raw("Forzen + {$money}")
             ]);
+            self::AddLog($uid, $money, $coin, 'withdraw');
             DB::commit();
         } catch(ArException $e){
             DB::rollBack();
@@ -118,7 +120,8 @@ class CoinService extends Service
         } catch(ArException $e){
             throw new ArException(ArException::SELF_ERROR,'上行获取失败');
         } catch(\Exception $e){
-            throw new \Exception($e->getMessage(), $e->getCode());
+            throw new ArException(ArException::SELF_ERROR,$e->getMessage());
+            throw new ArException(ArException::SELF_ERROR,$e->getMessage());
         }
     }
 
@@ -207,19 +210,33 @@ class CoinService extends Service
      */
     public function Balance(int $uid){
         if($uid <= 0) throw new ArException(ArException::UNKONW);
-        $memberCoin = MemberCoin::where('MemberId', $uid)->get();
+        $coins = Coin::where('Status', 1)->get();
         $list = [];
-        foreach($memberCoin as $item){
-            $list[] = [
-                'Id' => $item->Id,
-                'CoinId' => $item->CoinId,
-                'CoinName' => $item->CoinName,
-                'MemberId' => $item->MemberId,
-                'Money' => number($item->Money),
-                'LockMoney' => number($item->LockMoney),
-                'Forzen' => number($item->Forzen)
-            ];
+        foreach($coins as $coin){
+            $memberCoin = MemberCoin::where('MemberId', $uid)->where('CoinId', $coin->Id)->first();
+            if(empty($memberCoin)){
+                $list[] = [
+                    'Id' => 0,
+                    'CoinId' => $coin->Id,
+                    'CoinName' => $coin->EnName,
+                    'MemberId' => $uid,
+                    'Money' => 0,
+                    'LockMoney' => 0,
+                    'Forzen' => 0
+                ];
+            } else {
+                $list[] = [
+                    'Id' => $memberCoin->Id,
+                    'CoinId' => $memberCoin->CoinId,
+                    'CoinName' => $memberCoin->CoinName,
+                    'MemberId' => $memberCoin->MemberId,
+                    'Money' => number($memberCoin->Money),
+                    'LockMoney' => number($memberCoin->LockMoney),
+                    'Forzen' => number($memberCoin->Forzen)
+                ];
+            }
         }
+        $memberCoin = MemberCoin::where('MemberId', $uid)->get();
         return $list;
     }
 
@@ -287,10 +304,14 @@ class CoinService extends Service
      * @param int $id 币种Id
      * @param int $count 分页参数
      */
-    public function RechargeAndWithdraw(int $uid,  int $count){
+    public function RechargeAndWithdraw(int $uid,  int $count, int $id){
         if($uid <= 0) throw new ArException(ArException::UNKONW);
         if($count <= 0) throw new ArException(ArException::PARAM_ERROR);
-        $log = DB::table('RechargeAndWithdraw')->where('MemberId', $uid)->paginate($count);
+        if(empty($id)){
+            $log = DB::table('RechargeAndWithdraw')->where('MemberId', $uid)->paginate($count);
+        } else {
+            $log = DB::table('RechargeAndWithdraw')->where('MemberId', $uid)->where('CoinId', $id)->paginate($count);
+        }
         $list = [];
         foreach($log as $item){
             $list[] = [

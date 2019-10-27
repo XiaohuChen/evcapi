@@ -545,6 +545,7 @@ class MemberController extends Controller
      *         description="操作成功",
      *         @OA\JsonContent(ref="#/components/schemas/success")
      *     ),
+     *     @OA\Parameter(ref="#/components/parameters/PayPassword"),
      *     @OA\Header(
      *         header="api_key",
      *         description="Api key header",
@@ -560,6 +561,8 @@ class MemberController extends Controller
      */
     public function Unsealing(Request $request, MemberService $service){
         $uid = intval($request->get('uid'));
+        $pass = trim($request->input('PayPassword'));
+        $service->VerifyPayPass($uid, $pass);
         $list = $service->Unsealing($uid);
         return self::success($list);
     }

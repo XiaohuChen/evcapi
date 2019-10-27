@@ -165,22 +165,30 @@ class IndexController extends Controller
      *         response=200,
      *         description="操作成功",
      *         @OA\JsonContent(ref="#/components/schemas/success")
-     *     ),
-     *     @OA\Header(
-     *         header="api_key",
-     *         description="Api key header",
-     *         required=true,
-     *         @OA\Schema(
-     *             type="string"
-     *         )
-     *     ),
-     *     security={
-     *          {"Authorization":{}}
-     *     }
+     *     )
      * )
      */
     public function Question(Request $request, IndexService $service){
         $list = DB::table('CommonQA')->get();
+        return self::success($list);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/member-doc",
+     *     operationId="/member-doc",
+     *     tags={"Common"},
+     *     summary="关于我们&用户协议",
+     *     description="关于我们&用户协议",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     )
+     * )
+     */
+    public function Doc(Request $request, IndexService $service){
+        $list = DB::table('MemberDoc')->first();
         return self::success($list);
     }
 
@@ -217,6 +225,80 @@ class IndexController extends Controller
             throw new ArException(ArException::SELF_ERROR, $e->getMessage());
         }
         
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/news-list",
+     *     operationId="/news-list",
+     *     tags={"Index"},
+     *     summary="快讯列表",
+     *     description="快讯列表",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Parameter(ref="#/components/parameters/page"),
+     *     @OA\Parameter(ref="#/components/parameters/count")
+     * )
+     */
+    public function NewList(Request $request, IndexService $service){
+        $count = intval($request->input('count'));
+        $list = $service->NewsList($count);
+        return self::success($list);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/news-detail",
+     *     operationId="/news-detail",
+     *     tags={"Index"},
+     *     summary="快讯",
+     *     description="快讯",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Parameter(ref="#/components/parameters/NewsId")
+     * )
+     */
+    public function NewsDetail(Request $request, IndexService $service){
+        $id = intval($request->input('Id'));
+        $list = $service->NewsDetail($id);
+        return self::success($list);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/qiniu-domain",
+     *     operationId="/qiniu-domain",
+     *     tags={"Index"},
+     *     summary="获取七牛域名",
+     *     description="获取七牛域名",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Header(
+     *         header="api_key",
+     *         description="Api key header",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string"
+     *         )
+     *     ),
+     *     security={
+     *          {"Authorization":{}}
+     *     }
+     * )
+     */
+    public function QiniuDomain(Request $request, IndexService $service){
+        $res = DB::table('QiniuConfig')->select('Domain')->first();
+        return self::success($res);
     }
 
 }

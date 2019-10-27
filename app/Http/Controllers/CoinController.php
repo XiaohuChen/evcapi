@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\CoinService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CoinController extends Controller
 {
@@ -254,7 +255,8 @@ class CoinController extends Controller
     public function RechargeAndWithdraw(Request $request, CoinService $service){
         $uid = intval($request->get('uid'));
         $count = intval($request->input('count'));
-        $list = $service->RechargeAndWithdraw($uid, $count);
+        $id = intval($request->input('Id'));
+        $list = $service->RechargeAndWithdraw($uid, $count, $id);
         return self::success($list);
     }
 
@@ -331,5 +333,29 @@ class CoinController extends Controller
         $uid = intval($request->get('uid'));
         $balance = $service->TotalBalance($uid);
         return self::success($balance);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/coin-kline",
+     *     operationId="/coin-kline",
+     *     tags={"Coin"},
+     *     summary="币种行情",
+     *     description="币种行情",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     )
+     * )
+     */
+    public function Kline(Request $request, CoinService $service){
+        $type = DB::table('Kline')->select('PriceCoin')->groupBy('PriceCoin')->get();
+        $list = [];
+        foreach($type as $item){
+            $data = DB::table('Kline')->where('PriceCoin', $item->PriceCoin)->get();
+            $list[$item->PriceCoin] = $data; 
+        }
+        return self::success($list);
     }
 }

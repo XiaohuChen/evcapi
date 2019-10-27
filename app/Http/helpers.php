@@ -51,6 +51,14 @@ function isMobile($mobile)
         return false;
 }
 
+function isEmail($email){
+    $pattern = "/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,})$/";
+    if (preg_match($pattern, $email))
+        return true;
+    else
+        return false;
+}
+
 
 /**
  * 请求接口返回内容

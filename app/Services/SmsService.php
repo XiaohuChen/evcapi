@@ -4,8 +4,10 @@
 namespace App\Services;
 
 use App\Exceptions\ArException;
+use App\Libraries\SendEmail;
 use Illuminate\Support\Facades\Redis;
 use App\Models\MembersModel as Members;
+use Illuminate\Support\Facades\DB;
 
 class SmsService extends Service
 {
@@ -146,6 +148,25 @@ class SmsService extends Service
             'SendTime' => time()
         ];
         Redis::hset('AuthCode', $phone, json_encode($auth));
+    }
+
+    public function SendCode($email, $opt = ''){
+        if(empty($email)) throw new ArException(ArException::SELF_ERROR, '请输入邮箱');
+        if(empty($opt)) throw new ArException(ArException::PARAM_ERROR);
+        $code = mt_rand(100000, 999999);
+        $client = new SendEmail($code, $email);
+        $client->Send();
+        $auth = [
+            'Code' => $code,
+            'ExpireTime' => time() + 600,
+            'SendTime' => time()
+        ];
+        Redis::hset($opt, $email, json_encode($auth));
+    }
+
+    public function VerifyReg($email){
+        $has = DB::table('Members')->where('Email', $email)->first();
+        if(empty($has)) throw new ArException(ArException::SELF_ERROR,'该邮箱未注册');
     }
 
 }
