@@ -70,32 +70,49 @@ class LockReward extends Command
                 if(empty($member)) continue;
                 //静态奖励
                 $static = bcmul($item->Number, $item->Ratio, 10);
-                //加入收益余额
-                DB::table('Members')->where('Id', $item->MemberId)->increment('Balance', $static);
-                //加入产出记录
-                DB::table('OutputLog')->insert([
-                    'MemberId' => $item->MemberId,
-                    'Number' => $static,
-                    'ProductId' => $item->ProductId,
-                    'RewardDate' => $today,
-                    'AddTime' => $now
-                ]);
-                //加入奖励记录
-                DB::table('RewardRecord')->insert([
-                    'MemberId' => $item->MemberId,
-                    'Number' => $static,
-                    'Type' => 1,
-                    'AddTime' => $now
-                ]);
-                //如果剩余最后一天，则修改状态
+                //加入待发放余额
+                $process = DB::table('ProcessSend')->where('MemberProductId', $item->Id)->first();
+                if(empty($process)){
+                    DB::table('ProcessSend')->insert([
+                        'MemberProductId' => $item->Id,
+                        'Number' => $static,
+                    ]);
+                } else {
+                    DB::table('ProcessSend')->where('MemberProductId', $item->Id)->increment('Number', $static);
+                }
+                //如果剩余最后一天
                 if($item->SurplusDay == 1){
+                    //加入产出记录
+                    DB::table('OutputLog')->insert([
+                        'MemberId' => $item->MemberId,
+                        'Number' => bcmul($static, 10),
+                        'ProductId' => $item->ProductId,
+                        'RewardDate' => $today,
+                        'AddTime' => $now,
+                        'MemberProductId' => $item->Id
+                    ]);
+                    //加入奖励记录
+                    DB::table('RewardRecord')->insert([
+                        'MemberId' => $item->MemberId,
+                        'Number' => bcmul($static, 10),
+                        'Type' => 1,
+                        'AddTime' => $now
+                    ]);
+                    //把收益发给用户
+                    $process = DB::table('ProcessSend')->where('MemberProductId', $item->Id)->first();
+                    if($process->IsSend != 1){
+                        DB::table('Members')->where('Id', $item->MemberId)->increment('Balance', $process->Number);
+                        DB::table('ProcessSend')->where('MemberProductId', $item->Id)->update(['IsSend' => 1]);
+                    }
+                    DB::table('OutputLog')->where('MemberProductId', $item->Id)->update(['IsStatic' => 1]);
+                    //，则修改状态
                     DB::table('MemberProducts')->where('Id', $item->Id)->update(['State' => 2,'ExpireTime' => time()]);
                     //退还本金
                     DB::table('MemberCoin')
                         ->where('MemberId', $item->MemberId)
-                        ->where('CoinId', $evc->Id)
-                        ->increment('Money', $item->NumberEvc);
-                    $this->AddLog($item->MemberId, $item->NumberEvc, $evc, 'unlock_return_capital');
+                        ->where('CoinId', $usdt->Id)
+                        ->increment('Money', $item->Number);
+                    $this->AddLog($item->MemberId, $item->Number, $usdt, 'unlock_return_capital');
                     //退还定金 定金在锁定余额里面，转到余额里面
                     DB::table('MemberCoin')
                         ->where('MemberId', $item->MemberId)
@@ -106,7 +123,7 @@ class LockReward extends Command
                         ]);
                     $this->AddLog($item->MemberId, 10, $usdt, 'unlock_return_first_money');
                     //用户投资状态修改
-                    DB::table('Members')->where('Id', $item->MemberId)->update(['HasInv' => 0]);
+                    DB::table('Members')->where('Id', $item->MemberId)->update(['WaitOut' => 1]);
                     //检查升级
                     $member = MembersModel::where('Id', $item->MemberId)->first();
                     if(empty($member)) throw new \Exception('用户数据已出错!!'.$item->Id);

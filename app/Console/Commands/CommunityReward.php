@@ -46,7 +46,7 @@ class CommunityReward extends Command
         $zDay = strtotime(date('Y-m-d'));
         DB::beginTransaction();
         try{
-            $output = DB::table('OutputLog')->where('IsCommunityReward',0)->where('AddTime', '>', $zDay)->orderBy('Id','asc')->paginate(1000);
+            $output = DB::table('OutputLog')->where('IsStatic', 1)->where('IsCommunityReward',0)->where('AddTime', '>', $zDay)->orderBy('Id','asc')->paginate(1000);
             //获取等级配置
             $lSet = DB::table('CommunityLevelSetting')->get()->toArray();
             $lMap = array_column($lSet, 'Ratio', 'Level');

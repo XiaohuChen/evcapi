@@ -48,18 +48,18 @@ class Kline extends Command
                 if($result['status'] == 'ok'){
                     $pirceCny = 0;
                     if(strtolower($item->PriceCoin) == 'usdt'){
-                        $pirceCny = $result['tick']['close'] * 7;
+                        $pirceCny = $result['tick']['last'] * 7;
                     } else {
                         $priceUsdt = $this->GetPrice($item->PriceCoin, 'usdt');
                         if($priceUsdt['status'] == 'ok'){
-                            $pirceCny = $priceUsdt['tick']['close'] * 7;
-                            $pirceCny = $result['tick']['close'] * $pirceCny;
+                            $pirceCny = $priceUsdt['tick']['last'] * 7;
+                            $pirceCny = $result['tick']['last'] * $pirceCny;
                         }
                     }
                     DB::table('Kline')->where('Coin', $item->Coin)->where('PriceCoin', $item->PriceCoin)->update([
-                        'Price' => $result['tick']['close'],
+                        'Price' => $result['tick']['last'],
                         'PriceCny' => $pirceCny,
-                        'Kline' => bcdiv(bcsub($result['tick']['close'], $result['tick']['open'], 10), $result['tick']['open'], 10)
+                        'Kline' => bcdiv(bcsub($result['tick']['last'], $result['tick']['open'], 10), $result['tick']['open'], 10)
                     ]);
                 }
             } catch(\Exception $e){
@@ -93,7 +93,7 @@ class Kline extends Command
     //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     //     $dom = curl_exec($ch);
-    //     curl_close($ch);
+    //     curl_last($ch);
     //     return $dom;
     // }
 }

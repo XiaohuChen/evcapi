@@ -301,4 +301,25 @@ class IndexController extends Controller
         return self::success($res);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/update",
+     *     operationId="/update",
+     *     tags={"Common"},
+     *     summary="更新",
+     *     description="更新",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Parameter(ref="#/components/parameters/Version")
+     * )
+     */
+    public function Update(Request $request, IndexService $service){
+        $version = trim($request->input('Version'));
+        $info = $service->Update($version);
+        return self::success($info);
+    }
+
 }

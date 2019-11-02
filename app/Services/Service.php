@@ -54,7 +54,7 @@ class Service
     /**
      * @method 验证参数格式
      */
-    protected function VerifyParamsData(array $data){
+    protected function VerifyParamsData(array $data){ 
         if(!self::EmailFmt($data['Email']))
             throw new ArException(ArException::SELF_ERROR,'邮箱格式错误');
 
@@ -117,47 +117,38 @@ class Service
     }
 
     /**
-     * @method 【原】聚合发送短信
+     * @method 聚合发送短信
      */
-    public function JuHeSmsX($phone, $code, $tpl){
-        $url = "http://v.juhe.cn/sms/send";
-        $params = array(
-            'key'   => self::$juhe_key,
-            'mobile'    => $phone,
-            'tpl_id'    => $tpl,
-            'tpl_value' =>'#code#='.$code
-        );
+    // public function JuHeSms($phone, $code, $tpl){
+    //     $url = "http://v.juhe.cn/sms/send";
+    //     $params = array(
+    //         'key'   => self::$juhe_key,
+    //         'mobile'    => $phone,
+    //         'tpl_id'    => $tpl,
+    //         'tpl_value' =>'#code#='.$code
+    //     );
 
-        $paramstring = http_build_query($params);
-        $content = SendRequest($url, $paramstring);
-        $result = json_decode($content, true);
-        if(!is_array($result)) throw new ArException(ArException::SELF_ERROR,'发送失败');
-        if(!isset($result['error_code'])) throw new ArException(ArException::SELF_ERROR,'网络错误，请稍后再试');
-        if($result['error_code'] != 0) throw new ArException(ArException::SELF_ERROR, $result['reason']);
-    }
-    
-    /**
-     * @method 253替代聚合，发送短信
-     */
+    //     $paramstring = http_build_query($params);
+    //     $content = SendRequest($url, $paramstring);
+    //     $result = json_decode($content, true);
+    //     if(!is_array($result)) throw new ArException(ArException::SELF_ERROR,'发送失败');
+    //     if(!isset($result['error_code'])) throw new ArException(ArException::SELF_ERROR,'网络错误，请稍后再试');
+    //     if($result['error_code'] != 0) throw new ArException(ArException::SELF_ERROR, $result['reason']);
+    // }
+
     public function JuHeSms($phone, $code, $tpl){
-
         require_once('Sms253Api.php');
-
         $msg = '【EVC】验证码：'.$code.'，请尽快验证，5分钟内有效';
-        
         $clapi  = new \Sms253Api();
         //设置您要发送的内容：其中“【】”中括号为运营商签名符号，多签名内容前置添加提交
         $result = $clapi->sendSMS($phone,$msg);
-
         if(!is_null(json_decode($result))){
             $output=json_decode($result,true);
-
             if(isset($output['code'])  && $output['code']=='0'){
                 return $result;
             }else{
                 throw new ArException(ArException::SELF_ERROR, $result['errorMsg']);
             }
-            
         }else{
             throw new ArException(ArException::SELF_ERROR,'网络错误，请稍后再试');
         }
@@ -190,7 +181,7 @@ class Service
      * @param string $hash hash值
      */
     protected function MakeToken(int $uid, $hash){
-        /**
+        /** 
          * iss：发行人
          * exp：到期时间
          * sub：主题

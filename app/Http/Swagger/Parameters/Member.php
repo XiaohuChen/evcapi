@@ -209,5 +209,16 @@
  *      )
  * )
  * 
+ * @OA\Parameter(
+ *      parameter="Version",
+ *      name="Version",
+ *      description="版本",
+ *      in="query",
+ *      required=true,
+ *      @OA\Schema(
+ *          type="string",
+ *      )
+ * )
+ * 
  * 
  */

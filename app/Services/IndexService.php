@@ -10,6 +10,18 @@ class IndexService extends Service
 {
 
     /**
+     * @method 更新
+     * @param string $version 版本号
+     */
+    public function Update($version){
+        if(!is_numeric($version)) throw new ArException(ArException::PARAM_ERROR);
+        $up = DB::table('UpdateInfo')->first();
+        if(empty($up)) throw new ArException(ArException::SELF_ERROR,'No update');
+        if(bccomp($version, $up->ver, 5) < 0) return $up;
+        throw new ArException(ArException::SELF_ERROR,'No update');
+    }
+
+    /**
      * @method 快讯详情
      * 
      */

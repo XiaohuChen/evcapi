@@ -49,7 +49,7 @@ class InviteReward extends Command
         $setting = array_column($setting, 'Ratio', 'ProxyNumber');
         DB::beginTransaction();
         try{
-            $statics = DB::table('OutputLog')->where('RewardDate', $today)->where('IsRewardInvite', 0)->paginate(1500);
+            $statics = DB::table('OutputLog')->where('IsStatic', 1)->where('RewardDate', $today)->where('IsRewardInvite', 0)->paginate(1500);
             $now = time();
             foreach($statics as $item){
                 //下级购买的规格

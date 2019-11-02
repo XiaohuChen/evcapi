@@ -50,6 +50,7 @@ class WorldReward extends Command
             if(empty($lv)) throw new \Exception('没有等级能拿到全球分红');
             //当前没有投资不能拿全球分红
             $count = Members::whereIn('CommunityLevel', $lv)->where('HasInv', 1)->count();
+            if($count <= 0) throw new \Exception('无人达到等级');
             //按人头平分当日静态奖励、邀请奖励、社区奖励、平级奖励之和的5%
             //Type 1静态奖励 2邀请奖励 3社区奖励 4封号清空收益 5平级奖励
             $number = DB::table('RewardRecord')->whereIn('Type',[1,2,3,5])->where('AddTime', '>', $today)->sum('Number');

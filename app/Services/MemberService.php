@@ -153,8 +153,8 @@ class MemberService extends Service
             if(empty($member)) throw new ArException(ArException::USER_NOT_FOUND);
             if($member->AuthState == 1) throw new ArException(ArException::SELF_ERROR,'等待审核通过');
             if($member->AuthState == 2) throw new ArException(ArException::SELF_ERROR,'此账号已实名认证');
-            $has = Members::where('IdCard', $idCard)->where('Id', '<>', $uid)->first();
-            if(!empty($has)) throw new ArException(ArException::SELF_ERROR,'此身份证号已被实名认证');
+            //$has = Members::where('IdCard', $idCard)->where('Id', '<>', $uid)->first();
+            //if(!empty($has)) throw new ArException(ArException::SELF_ERROR,'此身份证号已被实名认证');
             DB::table('Members')->where('Id', $uid)->update([
                 'AuthState' => 1,
                 'IdCard' => $idCard,
@@ -219,7 +219,10 @@ class MemberService extends Service
             'AuthState' => $member->AuthState,
             'Achievement' => $member->Achievement,
             'IsForbidden' => $member->IsForbidden,
-            'PlanLevel' => $member->PlanLevel
+            'PlanLevel' => $member->PlanLevel,
+            'BindAddress' => empty($member->Address) ? 0 : 1,
+            'Address' => $member->Address,
+            'AuthState' => $member->AuthState
         ];
         return $info;
     }
@@ -532,7 +535,7 @@ class MemberService extends Service
         $sort = $uid % 20;
         if($sort < 10) $sort = '0'.$sort;
         $table = 'FinancingList_'.$sort;
-        $list = DB::table($table);
+        $list = DB::table($table)->where('MemberId', $uid);
         if($type > 0) $list = $list->where('Mold', $type);
         $list = $list->paginate($count);
         $data = [];
@@ -544,7 +547,8 @@ class MemberService extends Service
                 'MoldTitle' => $item->MoldTitle,
                 'Money' => $item->Money,
                 'Balance' => $item->Balance,
-                'Remark' => $item->Remark
+                'Remark' => $item->Remark,
+                'MemberId' => $item->MemberId
             ];
         }
         return ['list' => $data, 'total' => $list->total()];

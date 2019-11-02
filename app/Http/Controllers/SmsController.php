@@ -209,32 +209,34 @@ class SmsController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/email-test",
-     *     operationId="/email-test",
+     *     path="/email-bind-address",
+     *     operationId="/email-bind-address",
      *     tags={"SMS"},
-     *     summary="阿里云发送邮件api",
-     *     description="阿里云发送邮件api",
+     *     summary="绑定地址验证码",
+     *     description="绑定地址验证码",
      *     @OA\Response(
      *         response=200,
      *         description="操作成功",
      *         @OA\JsonContent(ref="#/components/schemas/success")
      *     ),
-     *     @OA\Parameter(ref="#/components/parameters/Email")
+     *     @OA\Header(
+     *         header="api_key",
+     *         description="Api key header",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string"
+     *         )
+     *     ),
+     *     security={
+     *          {"Authorization":{}}
+     *     }
      * )
      */
-    public function SendEmail(Request $request){
-        $email = trim($request->input('Email'));
-        $has = DB::table('Members')->where('Email', $email)->first();
-        if(empty($has)) throw new ArException(ArException::SELF_ERROR,'该邮箱未注册');
-        $code = mt_rand(100000, 999999);
-        $client = new SendEmail($code, $email);
-        $client->Send();
-        $auth = [
-            'Code' => $code,
-            'ExpireTime' => time() + 600,
-            'SendTime' => time()
-        ];
-        Redis::hset('ModifyPayPass', $email, json_encode($auth));
+    public function EmailBindAddress(Request $request, SmsService $service){
+        $uid = intval($request->get('uid'));
+        $member = DB::table('Members')->where('Id', $uid)->first();
+        if(empty($member)) throw new ArException(ArException::USER_NOT_FOUND);
+        $service->SendCode($member->Email, 'BindAddress');
         return self::success();
     }
 

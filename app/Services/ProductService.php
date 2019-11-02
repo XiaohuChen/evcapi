@@ -43,6 +43,8 @@ class ProductService extends Service
         $mpro = MemberProduct::where('MemberId', $uid)->where('Id', $id)->first();
         if(empty($mpro)) throw new ArException(ArException::SELF_ERROR,'你没有此笔投资');
 
+        $coin = Coin::where('EnName','EVC')->first();
+
         $res = [
             'Id' => $mpro->Id,
             'Name' => $mpro->product->Name,
@@ -52,7 +54,8 @@ class ProductService extends Service
             'Number' => $mpro->Number,
             'PassTime' => $mpro->PassTime,
             'PayTime' => $mpro->PayTime,
-            'NumberEVC' => $mpro->NumberEvc
+            'NumberEVC' => $mpro->NumberEvc,
+            'EvcPrice' => $coin->Price
         ];
         return $res;
     }
@@ -109,13 +112,12 @@ class ProductService extends Service
             if(empty($evc)) throw new ArException(ArException::SELF_ERROR,'不存在币种EVC');
             $memberProduct = MemberProduct::where('MemberId', $uid)->where('State', 3)->first();
             if(empty($memberProduct)) throw new ArException(ArException::SELF_ERROR,'不存在此预约或未放行');
-            $priceEvc = bcdiv($memberProduct->product->Number, $evc->Price, 10);
 
             $memberCoin = MemberCoin::where('MemberId', $uid)->where('CoinId', $evc->Id)->first();
             if(empty($memberCoin)) throw new ArException(ArException::SELF_ERROR,'你未持有EVC');
-            if(bccomp($memberCoin->Money, $priceEvc, 10) < 0) throw new ArException(ArException::SELF_ERROR,'EVC余额不足,所需数量'.$priceEvc);
-            DB::table('MemberCoin')->where('MemberId', $uid)->where('CoinId', $evc->Id)->decrement('Money', $priceEvc);
-            self::AddLog($uid, -$priceEvc, $evc, 'pay_lock');
+            if(bccomp($memberCoin->Money, $memberProduct->NumberEvc, 10) < 0) throw new ArException(ArException::SELF_ERROR,'EVC余额不足,所需数量'.$memberProduct->NumberEvc);
+            DB::table('MemberCoin')->where('MemberId', $uid)->where('CoinId', $evc->Id)->decrement('Money', $memberProduct->NumberEvc);
+            self::AddLog($uid, -$memberProduct->NumberEvc, $evc, 'pay_lock');
             DB::table('MemberProducts')->where('Id', $memberProduct->Id)->update(['State' => 1, 'PayTime' => time()]);
             //
             $number = $memberProduct->product->Number;
@@ -172,7 +174,7 @@ class ProductService extends Service
             if($time < $start || $time > $end)
                 throw new ArException(ArException::SELF_ERROR,'未到预约时间');
             //超过每日预约数量不能预约
-            $today = intval(date('Y-m-d'));
+            $today = intval(date('Ymd'));
             $planNum = MemberProduct::where('PlanDate', $today)->sum('Number');
             if(bccomp($planNum, $setting->PlanNumber, 10) > 0)
                 throw new ArException(ArException::SELF_ERROR,'今日预约金额已到上限');

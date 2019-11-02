@@ -10,11 +10,46 @@ use Illuminate\Support\Facades\DB;
 use App\Models\WithdrawModel as Withdraw;
 use App\Models\RechargeModel as Recharge;
 use App\Libraries\Thrift;
-use App\Models\MembersModel;
+use App\Models\MembersModel as Members;
 use Illuminate\Support\Facades\Redis;
 
 class CoinService extends Service
 {
+
+    /**
+     * 绑定地址
+     */
+    public function BindAddress(int $uid, $address, int $code){
+        if($uid <= 0) throw new ArException(ArException::UNKONW);
+        if(empty($address)) throw new ArException(ArException::SELF_ERROR,'请填写地址');
+        DB::beginTransaction();
+        try{
+            $member = Members::where('Id', $uid)->first();
+            if(empty($member))
+                throw new ArException(ArException::USER_NOT_FOUND);
+            //验证码
+            $auth = Redis::hget('BindAddress',$member->Email);
+            if(empty($auth)) throw new ArException(ArException::SELF_ERROR,'请先发送验证码');
+            $auth = json_decode($auth, true);
+            if(!is_array($auth)) throw new ArException(ArException::SELF_ERROR,'验证码已失效，请重新发送');
+            if($auth['Code'] != $code) throw new ArException(ArException::SELF_ERROR,'验证码错误');
+            if($auth['ExpireTime'] < time()) throw new ArException(ArException::SELF_ERROR,'验证码已过期');
+            
+            if(!empty($member->Address))
+                throw new ArException(ArException::SELF_ERROR,'你已绑定地址');
+            DB::table('Members')->where('Id', $uid)->update([
+                'Address' => $address
+            ]);
+            DB::commit();
+        } catch(ArException  $e){
+            DB::rollBack();
+            throw new ArException(ArException::SELF_ERROR,$e->getMessage());
+        } catch(\Exception $e){
+            DB::rollBack();
+            throw new ArException(ArException::SELF_ERROR,$e->getMessage());
+        }
+        
+    }
 
     /**
      * @method 钱包总资产(USDT)
@@ -34,12 +69,11 @@ class CoinService extends Service
     /**
      * @method 提现
      */
-    public function Recharge(int $uid, int $coinId, string $money, string $address, string $memo = '', $code = null){
+    public function Recharge(int $uid, int $coinId, string $money, string $memo = '', $code = null){
         if($uid <= 0) throw new ArException(ArException::UNKONW);
         if($coinId <= 0) throw new ArException(ArException::PARAM_ERROR);
         if(!is_numeric($money)) throw new ArException(ArException::SELF_ERROR,'金额数量错误');
-        if(empty($address)) throw new ArException(ArException::SELF_ERROR,'请填写地址');
-        $member = MembersModel::where('Id', $uid)->first();
+        $member = Members::where('Id', $uid)->first();
         //验证码
         $auth = Redis::hget('WithdrawCode', $member->Phone);
         if(empty($auth)) throw new ArException(ArException::SELF_ERROR,'请先发送验证码');
@@ -49,6 +83,12 @@ class CoinService extends Service
         if($auth['ExpireTime'] < time()) throw new ArException(ArException::SELF_ERROR,'验证码已过期');
         DB::beginTransaction();
         try{
+            //未实名不可提现
+            $member = Members::where('Id', $uid)->first();
+            if(empty($member)) throw new ArException(ArException::USER_NOT_FOUND);
+            if($member->AuthState != 2) throw new ArException(ArException::SELF_ERROR,'请先实名认证');
+            //未绑定地址不能提现
+            if(empty($member->Address)) throw new ArException(ArException::SELF_ERROR,'请先绑定地址');
             $coin = Coin::find($coinId);
             if(empty($coin)) throw new ArException(ArException::COIN_NOT_FOUND);
             //是否可提现
@@ -70,7 +110,7 @@ class CoinService extends Service
             
             //Recharge Insert
             $recharge = [
-                'Address' => $address,
+                'Address' => $member->Address,
                 'Balance' => bcsub($memberCoin->Money, $money, 10),
                 'MemberId' => $uid,
                 'Mobile' => $memberCoin->member->Phone,
@@ -136,12 +176,8 @@ class CoinService extends Service
 
         $detail = Recharge::where('Id', $id)->where('MemberId', $uid)->first();
         if(empty($detail)) throw new ArException(ArException::PARAM_ERROR);
-        $data = [
-            'RecvAddress' => $detail->Address,
-            'Hash' => $detail->Hash,
-            'Status' => $detail->Status
-        ];
-        return $data;
+
+        return $detail;
     }
 
     /**
@@ -155,13 +191,13 @@ class CoinService extends Service
 
         $detail = Withdraw::where('Id', $id)->where('MemberId', $uid)->first();
         if(empty($detail)) throw new ArException(ArException::PARAM_ERROR);
-        $data = [
-            'RecvAddress' => $detail->Address,
-            'Hash' => $detail->Hash,
-            'Status' => $detail->Status,
-            'Fee' => $detail->Fee
-        ];
-        return $data;
+        // $data = [
+        //     'RecvAddress' => $detail->Address,
+        //     'Hash' => $detail->Hash,
+        //     'Status' => $detail->Status,
+        //     'Fee' => $detail->Fee
+        // ];
+        return $detail;
     }
 
     /**
@@ -180,7 +216,8 @@ class CoinService extends Service
         if(empty($memberCoin)){
             $newId = DB::table('MemberCoin')->insertGetId([
                 'MemberId' => $uid,
-                'CoinId' => $id
+                'CoinId' => $id,
+                'CoinName' => $coin->EnName
             ]);
             return [
                 'Id' => $newId,
@@ -260,6 +297,8 @@ class CoinService extends Service
             'MaxWithDraw' => $coin->MaxWithDraw,
             'WithDrawFee' => $coin->WithDrawFee,
             'MinWithDrawFee' => $coin->MinWithDrawFee,
+            'WithDrawInfo' => $coin->WithDrawInfo,
+            'RechargeInfo' => $coin->RechargeInfo,
             'Fixed' => $coin->Fixed,
             'Status' => $coin->Status,
             'Description' => $coin->Description
@@ -272,6 +311,39 @@ class CoinService extends Service
      */
     public function List(){
         $list = Coin::get();
+        $coins = [];
+        foreach($list as $item){
+            $coins[] = [
+                'Id' => $item->Id,
+                'Name' => $item->Name,
+                'EnName' => $item->EnName,
+                "FullName" => $item->FullName,
+                'Price' => $item->Price,
+                'Logo' => $item->Logo,
+                'IsWithDraw' => $item->IsWithDraw,
+                'IsRecharge' => $item->IsRecharge,
+                'MinWithDraw' => $item->MinWithDraw,
+                'MaxWithDraw' => $item->MaxWithDraw,
+                'WithDrawFee' => $item->WithDrawFee,
+                'MinWithDrawFee' => $item->MinWithDrawFee,
+                'Fixed' => $item->Fixed,
+                'Status' => $item->Status,
+                'Ext' => $item->Ext,
+                'MainAddress' => $item->MainAddress,
+                'Protocol' => $item->Protocol,
+                'Decimals' => $item->Decimals,
+                'WithDrawInfo' => $item->WithDrawInfo,
+                'RechargeInfo' => $item->RechargeInfo,
+            ];
+        }
+        return $coins;
+    }
+
+    /**
+     * @method 获取币种列表
+     */
+    public function ZList(){
+        $list = DB::table('CoinFake')->get();
         $coins = [];
         foreach($list as $item){
             $coins[] = [

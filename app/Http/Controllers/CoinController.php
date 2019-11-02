@@ -31,6 +31,25 @@ class CoinController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/coin--list",
+     *     operationId="/coin--list",
+     *     tags={"Coin"},
+     *     summary="区块币种列表",
+     *     description="区块币种列表",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     )
+     * )
+     */
+    public function ZList(Request $request, CoinService $service){
+        $list = $service->ZList();
+        return self::success($list);
+    }
+
+    /**
+     * @OA\Get(
      *     path="/single-coin",
      *     operationId="/single-coin",
      *     tags={"Coin"},
@@ -274,7 +293,6 @@ class CoinController extends Controller
      *     ),
      *     @OA\Parameter(ref="#/components/parameters/CoinId"),
      *     @OA\Parameter(ref="#/components/parameters/Money"),
-     *     @OA\Parameter(ref="#/components/parameters/Address"),
      *     @OA\Parameter(ref="#/components/parameters/Memo"),
      *     @OA\Parameter(ref="#/components/parameters/AuthCode"),
      *     @OA\Parameter(ref="#/components/parameters/PayPassword"),
@@ -297,11 +315,10 @@ class CoinController extends Controller
         $service->VerifyPayPass($uid, $pass);
         $coinId = intval($request->input('Id'));
         $money = trim($request->input('Money'));
-        $address = trim($request->input('Address'));
         $memo = trim($request->input('Id'));
         $code = $request->input('AuthCode');
-        $list = $service->Recharge($uid, $coinId, $money, $address, $memo, $code);
-        return self::success($list);
+        $service->Recharge($uid, $coinId, $money, $memo, $code);
+        return self::success();
     }
 
     /**
@@ -332,6 +349,41 @@ class CoinController extends Controller
     public function TotalBalance(Request $request, CoinService $service){
         $uid = intval($request->get('uid'));
         $balance = $service->TotalBalance($uid);
+        return self::success($balance);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/bind-address",
+     *     operationId="/bind-address",
+     *     tags={"Coin"},
+     *     summary="绑定地址",
+     *     description="绑定地址",
+     *     @OA\Response(
+     *         response=200,
+     *         description="操作成功",
+     *         @OA\JsonContent(ref="#/components/schemas/success")
+     *     ),
+     *     @OA\Parameter(ref="#/components/parameters/Address"),
+     *     @OA\Parameter(ref="#/components/parameters/AuthCode"),
+     *     @OA\Header(
+     *         header="api_key",
+     *         description="Api key header",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string"
+     *         )
+     *     ),
+     *     security={
+     *          {"Authorization":{}}
+     *     }
+     * )
+     */
+    public function BindAddress(Request $request, CoinService $service){
+        $uid = intval($request->get('uid'));
+        $addr = trim($request->input('Address'));
+        $code = intval($request->input('AuthCode'));
+        $balance = $service->BindAddress($uid, $addr, $code);
         return self::success($balance);
     }
 

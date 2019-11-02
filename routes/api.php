@@ -24,6 +24,7 @@ Route::post('member-forget-paypassword', 'MemberController@ForgetPayPassword');
 Route::get('member-doc', 'IndexController@Doc');
 Route::get('news-list', 'IndexController@NewList');
 Route::get('news-detail', 'IndexController@NewsDetail');
+Route::get('update', 'IndexController@Update');
 
 
 //sms
@@ -34,9 +35,9 @@ Route::post('email-register-code', 'SmsController@EmailRegisterCode');
 Route::post('email-modify-pass', 'SmsController@EmailModifyPassCode');
 Route::post('email-modify-pay-pass', 'SmsController@EmailModifyPayPassCode');
 Route::post('sms-bindphone-code', 'SmsController@BindPhoneCode');
-Route::post('email-test', 'SmsController@SendEmail');
 
 Route::get('coin-kline', 'CoinController@Kline');
+Route::get('coin--list', 'CoinController@ZList');
 
 
 //币种
@@ -51,10 +52,8 @@ Route::middleware('token')->group(function () {
     Route::get('notice-list', 'IndexController@NoticeList');
     Route::get('notice-detail', 'IndexController@NoticeDetail');
     Route::get('qiniu-upload', 'IndexController@QiniuUpload');
-    
-
+    Route::post('email-bind-address', 'SmsController@EmailBindAddress');
     Route::post('sms-withdraw', 'SmsController@WithdrawCode');
-    
     //用户
     Route::post('member-modify-password', 'MemberController@ModifyPassword');
     Route::post('member-modify-paypassword', 'MemberController@ModifyPayPassword');
@@ -83,6 +82,7 @@ Route::middleware('token')->group(function () {
     Route::get('recharge-withdraw', 'CoinController@RechargeAndWithdraw');
     Route::post('recharge', 'CoinController@Recharge');
     Route::get('total-balance', 'CoinController@TotalBalance');
+    Route::post('bind-address', 'CoinController@BindAddress');
 
     //产品
     Route::post('plan-product', 'ProductController@Plan');
@@ -91,6 +91,7 @@ Route::middleware('token')->group(function () {
     Route::get('my-product', 'ProductController@MyList');
     Route::get('my-detail', 'ProductController@MyDetail');
     Route::get('product-detail', 'ProductController@Detail');
+    
 });
 
 
